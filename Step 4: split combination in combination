@@ -1,0 +1,63 @@
+Select 
+t5.*,
+a.UUID as part1UUID,
+b.UUID as part2UUID,
+IF(t5.count > 1,c.UUID,'no_value') as part3UUID,
+IF(t5.count > 2,d.UUID,'no_value') as part4UUID,
+IF(t5.count > 3,e.UUID,'no_value') as part5UUID,
+IF(t5.count > 4,f.UUID,'no_value') as part6UUID
+
+
+from 
+(
+Select 
+t4.UUID,
+t4.Combination_name,
+t4.joy2,
+t4.count,
+t4.combination_name_band,
+trim(SUBSTRING_INDEX(t4.joy2,'###',1)) as part1,
+trim(SUBSTRING_INDEX(SUBSTRING_INDEX(t4.joy2,'###',2),'###',-1)) as part2,
+trim(if(count>1,SUBSTRING_INDEX(SUBSTRING_INDEX(t4.joy2,'###',3),'###',-1),'')) as part3,
+trim(if(count>2,SUBSTRING_INDEX(SUBSTRING_INDEX(t4.joy2,'###',4),'###',-1),'')) as part4,
+trim(if(count>3,SUBSTRING_INDEX(SUBSTRING_INDEX(t4.joy2,'###',5),'###',-1),'')) as part5,
+trim(if(count>4,SUBSTRING_INDEX(SUBSTRING_INDEX(t4.joy2,'###',6),'###',-1),'')) as part6
+FROM
+(
+Select
+t3.*,
+(LENGTH(joy2) - LENGTH(REPLACE(joy2,'###','')))/3 as count 
+from 
+(
+Select 
+t2.*,
+if(LEFT(joy,3) = '###',if(right (joy,3) = '\#\#\#',MID(joy,4,LENGTH(joy)-6),MID(joy,4,LENGTH(joy)-3)),if(RIGHT(joy,3) = '###',SUBSTRING_INDEX(joy,'###',(LENGTH(joy) - LENGTH(REPLACE(joy,'###','')))/3),joy)) as joy2
+from (
+Select
+t1.*,
+trim(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(replace( REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(t1.combination_name_reformat),'&','###'),',','###'),'feat.','###'),' with ','###'),' vs. ','###'),'ft.','###'),'featuring','###'),'feat','###'),' and ','###'),' x ','###'),'prod.','###'),' vs ', '###'),' y ','###'),'+','###'),' duet ','###'),'(','###'),')','###'),'######','###'),'### ###','###'),'######','###'),'### ###','###'),'****',t1.combination_name_band)) as joy 
+from (
+Select
+UUID,
+lower(combination_name) as combination_name,
+lower(combination_name_band) as combination_name_band,
+REPLACE(lower(combination_name),lower(combination_name_band),'****') as combination_name_reformat
+from artist_combination_process_joy
+where
+artist_combination_process_joy.joy_checking like '%combination in combination%'
+) as t1
+) as t2
+) as t3
+) as t4
+WHERE 
+(count > 0
+and 
+count < 6)
+) as t5
+join artists a on a.name = t5.part1 and a.valid > 0
+JOIN artists b on b.name = t5.part2 and b.valid > 0
+JOIN artists c on c.name = t5.part3 and c.valid > 0
+JOIN artists d on d.name = t5.part4 and d.valid > 0
+JOIN artists e on e.name = t5.part5 and e.valid > 0
+JOIN artists f on f.name = t5.part6 and f.valid > 0
+group by t5.UUID
